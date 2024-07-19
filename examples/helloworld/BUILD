@@ -14,6 +14,7 @@ cc_binary(
         ":helloworld_proto",
         "@com_github_fmtlib_fmt//:fmtlib",
         "@trpc_cpp//trpc/common:trpc_app",
+        "@trpc_cpp//trpc/overload_control/token_bucket_limiter:token_bucket_limiter_server_filter",
     ],
 )
 
