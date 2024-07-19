@@ -17,15 +17,16 @@
 #include "fmt/format.h"
 
 #include "trpc/common/trpc_app.h"
-
+#include "trpc/common/trpc_plugin.h"
 #include "examples/helloworld/greeter_service.h"
+#include "trpc/overload_control/token_bucket_limiter/token_bucket_limiter_server_filter.h"
 
 namespace test {
 
 namespace helloworld {
 
 class HelloWorldServer : public ::trpc::TrpcApp {
- public:
+public:
   int Initialize() override {
     const auto& config = ::trpc::TrpcConfig::GetInstance()->GetServerConfig();
     // Set the service name, which must be the same as the value of the `/server/service/name` configuration item
@@ -35,6 +36,12 @@ class HelloWorldServer : public ::trpc::TrpcApp {
 
     RegisterService(service_name, std::make_shared<GreeterServiceImpl>());
 
+    return 0;
+  }
+
+  int RegisterPlugins() {
+    auto server_filter = std::make_shared<trpc::overload_control::TokenBucketLimiterServerFilter>();
+    trpc::TrpcPlugin::GetInstance()->RegisterServerFilter(server_filter);
     return 0;
   }
 

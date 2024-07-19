@@ -19,8 +19,12 @@ namespace test {
 namespace helloworld {
 
 class GreeterServiceImpl : public ::trpc::test::helloworld::Greeter {
- public:
+public:
   ::trpc::Status SayHello(::trpc::ServerContextPtr context,
+                          const ::trpc::test::helloworld::HelloRequest* request,
+                          ::trpc::test::helloworld::HelloReply* reply) override;
+
+  ::trpc::Status SayHelloAgain(::trpc::ServerContextPtr context,
                           const ::trpc::test::helloworld::HelloRequest* request,
                           ::trpc::test::helloworld::HelloReply* reply) override;
 };
