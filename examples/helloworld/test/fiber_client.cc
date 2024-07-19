@@ -13,6 +13,8 @@
 
 #include <iostream>
 #include <string>
+#include <thread>
+#include <vector>
 
 #include "gflags/gflags.h"
 
@@ -26,10 +28,10 @@
 DEFINE_string(client_config, "trpc_cpp.yaml", "framework client_config file, --client_config=trpc_cpp.yaml");
 DEFINE_string(service_name, "trpc.test.helloworld.Greeter", "callee service name");
 
-int DoRpcCall(const std::shared_ptr<::trpc::test::helloworld::GreeterServiceProxy>& proxy) {
+int DoRpcCall(const std::shared_ptr<::trpc::test::helloworld::GreeterServiceProxy>& proxy, int idx) {
   ::trpc::ClientContextPtr client_ctx = ::trpc::MakeClientContext(proxy);
   ::trpc::test::helloworld::HelloRequest req;
-  req.set_msg("fiber");
+  req.set_msg("fiber, idx="+std::to_string(idx));
   ::trpc::test::helloworld::HelloReply rsp;
   ::trpc::Status status = proxy->SayHello(client_ctx, req, &rsp);
   if (!status.OK()) {
@@ -40,10 +42,61 @@ int DoRpcCall(const std::shared_ptr<::trpc::test::helloworld::GreeterServiceProx
   return 0;
 }
 
-int Run() {
-  auto proxy = ::trpc::GetTrpcClient()->GetProxy<::trpc::test::helloworld::GreeterServiceProxy>(FLAGS_service_name);
+int DoRpcCallAgain(const std::shared_ptr<::trpc::test::helloworld::GreeterServiceProxy>& proxy) {
+  ::trpc::ClientContextPtr client_ctx = ::trpc::MakeClientContext(proxy);
+  ::trpc::test::helloworld::HelloRequest req;
+  req.set_msg("fiber2");
+  ::trpc::test::helloworld::HelloReply rsp;
+  ::trpc::Status status = proxy->SayHello(client_ctx, req, &rsp);
+  if (!status.OK()) {
+    std::cerr << "get again rpc error: " << status.ErrorMessage() << std::endl;
+    return -1;
+  }
+  std::cout << "get again rsp msg: " << rsp.msg() << std::endl;
+  return 0;
+}
 
-  return DoRpcCall(proxy);
+int DoConcurrentCall(const std::shared_ptr<::trpc::test::helloworld::GreeterServiceProxy>& proxy) {
+  ::trpc::ClientContextPtr client_ctx = ::trpc::MakeClientContext(proxy);
+  for (int i = 1; i <= 100; i++) {
+	  ::trpc::test::helloworld::HelloRequest req;
+	  req.set_msg("fiber"+std::to_string(i));
+	  ::trpc::test::helloworld::HelloReply rsp;
+	  ::trpc::Status status = proxy->SayHello(client_ctx, req, &rsp);
+	  if (!status.OK()) {
+		std::cerr << "get again rpc error: " << status.ErrorMessage() << std::endl;
+		return -1;
+	  }
+	  std::cout << "get again rsp msg: " << rsp.msg() << std::endl;
+  }
+  return 0;
+}
+
+int Run() {
+  // auto proxy = ::trpc::GetTrpcClient()->GetProxy<::trpc::test::helloworld::GreeterServiceProxy>(FLAGS_service_name);
+
+  // int ret1 = DoRpcCall(proxy);
+
+  // ret1 = DoRpcCallAgain(proxy);
+
+  // int ret = DoConcurrentCall(proxy);
+
+  std::vector<std::thread> threads;
+  for (int i = 1; i <= 40; i++) {
+    auto proxy = ::trpc::GetTrpcClient()->GetProxy<::trpc::test::helloworld::GreeterServiceProxy>(FLAGS_service_name);
+	//threads.emplace_back(DoRpcCall(proxy, i));
+	threads.emplace_back([i,proxy](){
+		DoRpcCall(proxy, i);
+	});
+  }
+
+  for (auto& t : threads) {
+	if (t.joinable()) {
+		t.join();
+	}
+  }
+
+  return 0;
 }
 
 void ParseClientConfig(int argc, char* argv[]) {

@@ -1,0 +1,3 @@
+. build.sh
+bazel build //examples/helloworld/...
+./bazel-bin/examples/helloworld/helloworld_svr --config=./trpc/overload_control/token_bucket_limiter/token_bucket_overload_ctrl.yaml
